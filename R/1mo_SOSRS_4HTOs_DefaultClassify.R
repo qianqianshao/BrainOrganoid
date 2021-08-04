@@ -1,4 +1,7 @@
-# 12.30.2020 by Qianyi
+# scRNA-seq analysis for 4 SOSRSs at 1-month old with HTO on 12.30.2020 by Qianyi
+# kept cell barcodes present in both raw RNA counts and HTO counts matrices
+# used default Normalization and Demultiplexing from Seurat3
+
 R 
 
 library(dplyr)
