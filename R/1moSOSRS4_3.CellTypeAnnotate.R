@@ -45,7 +45,7 @@ datainfo=data.frame(run,dataset,names,subject,organ)
 ### Data loading
 library(Seurat)
 indiv=1
-ss="HTO20kcell_6kcell_JunClassify_singlet"
+ss="1mo_6kcell_singlet"
 load(file=paste0(ss,".Robj"))
 dgeall=dge.singlet
 raw=GetAssayData(object=dgeall,slot="counts")
@@ -88,14 +88,61 @@ library(dplyr)
   result[['scHCL']]<- scblast.result
   result[['scHCL_probility']]<- cors_out
 hcl_result <- result
-save(hcl_result,file="HTO20kcell_6kcell_JunClassify_singlet_HCL_7cluster_rankcor.Robj")
 jpeg(file="plot/scHCL_cluster_rankcor_plot.jpeg",res=300,height=2000,width=1600)
 plotHCL(hcl_result, cluster_rows=TRUE,cluster_cols=TRUE,col_font_size = 10, row_font_size=8)
 dev.off()
 write.table(hcl_result$cors,"plot/scHCL_cluster_rankcor_all.txt",row.names=T,col.names=T,quote=F,sep="\t")
 write.table(hcl_result$scHCL,"plot/scHCL_cluster_rankcor_top1.txt",row.names=T,col.names=F,quote=F,sep="\t")
 write.table(hcl_result$scHCL_probility,"plot/scHCL_cluster_rankcor_top3.txt",row.names=F,col.names=T,quote=F,sep="\t")
+library(pheatmap) 
+# modified visualization by removing clustering in rows and/or columns                          
+plotHCL <- function(hcl_result,interactive_plot=F, cluster_rows=FALSE,cluster_cols=FALSE,numbers_plot=3, col_font_size = 1, row_font_size=8, show_col=T,show_bar=T, show_tree = T){
+  data(ref.expr)
+  cors <- hcl_result$cors_matrix
+  cors_index <- apply(cors,2,gettissue,numbers_plot)
+  cors_index <- sort(unique(as.integer(cors_index)))
+  data = cors[cors_index,]
+  cors_out = reshape2::melt(data)[c(2,1,3)]
+  colnames(cors_out)<- c("Cell","Cell type","Score")
+  cors_out <- as.data.frame(cors_out %>% group_by(Cell) %>% top_n(n=numbers_plot,wt=Score))
+  hcl_result$scHCL_probility <- cors_out
+  hcl_result$top_cors <- numbers_plot
+  height=dim(data)[1]*10+230
+  tree_height = 0
+  if(isTRUE(show_tree)){tree_height=50}
 
+    p<-pheatmap(
+      data,
+      cluster_rows=cluster_rows,
+      cluster_cols=cluster_cols,
+      clustering_distance_rows = "euclidean",
+      clustering_distance_cols = "euclidean",
+      clustering_method = "ward.D",
+     fontsize_col = col_font_size,
+      fontsize_row = row_font_size,
+      color = colorRampPalette(c("grey", "white", "red"))(100),
+      cellheight = 10,
+      show_colnames = show_col,
+      border_color = NA,
+      height = height,
+      legend = show_bar,
+      treeheight_col = tree_height,
+      treeheight_row = tree_height
+      )
+    if(isTRUE(interactive_plot)){
+
+      inter_data<-data[rev(p$tree_row$order),][,p$tree_col$order]
+      height= length(p$tree_row$order)*10+230
+      plot_ly(x=colnames(inter_data),y=rownames(inter_data),z = inter_data, colors = colorRamp(c("grey", "white","red")),height=height, type = "heatmap", showscale=show_bar) %>% layout(autosize=T,  margin=list(l=0,r=230,b=180,t=20,pad=4),font=list(size=row_font_size),xaxis=list(showticklabels=show_col),yaxis=list(side="right"))
+    }
+    else{
+      p
+    }
+
+}
+jpeg(file="plot/scHCL_cluster_rankcor_top10_noColcluster.jpeg",res=300,height=2000,width=1600)
+plotHCL(hcl_result, cluster_rows=TRUE,numbers_plot=10,cluster_cols=FALSE,col_font_size = 10, row_font_size=8)
+dev.off()
                           
                           
 # 2. cell type annotation by rank correlation with cluster centroids of organoid atlas reference
