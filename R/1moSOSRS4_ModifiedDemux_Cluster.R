@@ -133,8 +133,6 @@ dge.hashtag$label <- factor(dge.hashtag$label,levels=c("Doublet","HTO-A","HTO-B"
 dge.hashtag$label2 <- label2
 dge.hashtag$label2 <- factor(dge.hashtag$label2,levels=c("Doublet","Negative","Singlet"))
 
-save(dge.hashtag,file="HTO20kcell_6kcell_hashtag.Robj")
-
 Idents(dge.hashtag) <- "label"
 p=list()
 p[[1]]=FeatureScatter(dge.hashtag, pt.size=.8,feature1 = "hto_HTO-A", feature2 = "hto_HTO-B")
@@ -557,6 +555,124 @@ dev.off()
 }
 
 
+## Rank cor of cluster centroids across 4 SOSRS
+
+### using either union of HVG or top 50 markers for each cluster
+res=c(paste0("RNA_snn_res.0.",c(2),"ordered"))
+reps=rownames(dge@assays$HTO@data)
+
+hvg.union=VariableFeatures(dgeall)
+length(hvg.union) # 1158
+
+top50markers=NULL
+markers %>% group_by(cluster) %>% top_n(50, avg_logFC)  -> top50
+top50markers=unique(top50$gene)
+length(top50markers) #281
+
+genelist=list(hvg.union,top50markers)
+genelabels=c("HVG","Top50Markers")
+
+
+### order cells by batch first, then by clusters of each batch
+blockident=paste(dgeall$label,dgeall$RNA_snn_res.0.2ordered,sep="_")
+
+### Clusters ordered first by batches, then by res
+batch=reps
+nbatch=length(batch)
+ncluster=NULL
+for(i in batch){
+  ncluster=c(ncluster,length(unique(Idents(dgeall))))
+}
+ncluster 
+clusters=list()
+for(i in 1:nbatch){
+  clusters[[i]]=rep(1:ncluster[i])
+}
+levels2=NULL
+for(bb in 1:nbatch){
+    cluster=clusters[[bb]]
+    levels2=c(levels2,paste(batch[bb],cluster,sep="_"))
+}
+levels2=levels2[which(levels2 %in% unique(blockident))]
+levels=levels2
+
+#names(blockident)=paste0("X",names(blockident))
+#names(blockident)=gsub("-",".",names(blockident))
+ident=factor(blockident,levels=levels)
+
+### Calculate correlation for each normalized centroid using HVG
+### for each cluster, calculate average normalized expression of each gene
+dge=dgeall
+Idents(dge)<-ident
+dge$indivclusters<-ident
+
+dgeall=dge
+dge.singlet=dgeall
+
+print(cbind(table(Idents(dge))))
+
+centroid=log(AverageExpression(dge)$RNA+1)
+write.table(centroid,paste0("plot/HTO_singlet_rep_Centroid.txt"),row.names=T,col.names=T,quote=F,sep="\t")
+
+pdf(file=paste("plot/organs_parts_Centroid_RankedCorrelation_HVG.pdf",sep=""),height=7.5,width=7)
+par(mar=c(4,4,1,1),mgp=c(2.5, 1, 0))
+
+for(g in 1:length(genelist)){
+genelabel=genelabels[g]
+genes=genelist[[g]]
+print(length(genes))
+
+cc=cor(as.matrix(centroid)[genes,],method="spearman")
+dim(cc)
+min(cc) # 0.036
+
+data.use=cc[levels,levels]
+### save the cluster centroid rank correlation using HVG
+write.table(data.use,paste0("plot/HTO_singlet_rep_Centroid_rho_",genelabel,".txt"),row.names=T,col.names=T,quote=F,sep="\t")
+### note: once calculated, next time can directly read table without calculating again
+
+### load cluster centroid rank correlation using HVG
+data.use=read.table(paste0("plot/HTO_singlet_rep_Centroid_rho_",genelabel,".txt"),header=T,row.names=1)
+colnames(data.use)=rownames(data.use)
+levels=rownames(data.use)
+#batch=names[ft]
+
+### labeling
+colsep.use=cumsum(table(gsub("_.*","",levels))[unique(gsub("_.*","",levels))])
+col.lab=rep("",length(levels))
+col.lab[round(cumsum(table(gsub("_.*","",levels))[unique(gsub("_.*","",levels))])-table(gsub("_.*","",levels))[unique(gsub("_.*","",levels))]/2)+0]=unique(gsub("_.*","",levels))
+row.lab=gsub(".*_","",levels)
+
+sidecol=do.call(rbind,strsplit(levels,"_"))
+batchtmp=batch[which(batch %in% unique(sidecol[,1]))]
+for(rep in 1:length(unique(sidecol[,1]))){
+a=batchtmp[rep]
+sidecol[which(sidecol[,1]==a),1]<-rep
+}
+
+rlab=matrix(0,2,length(levels))
+rlab[1,]=rep(c("white","black"),6)[as.numeric(sidecol[,1])]
+for(i in 1:nrow(sidecol)){
+  rlab[2,i]=myBrewerPalette[as.numeric(sidecol[i,2])]
+}
+clab=cbind(rlab[2,],rlab[1,])
+rownames(rlab)=c("","Cluster")
+colnames(clab)=c("Cluster","")
+
+col.use=redblue100
+
+library(gplots)
+library(devtools)
+source_url("https://raw.githubusercontent.com/obigriffith/biostar-tutorials/master/Heatmaps/heatmap.3.R")
+
+
+heatmap.3(data.use,dendrogram="none",Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,rowsep=colsep.use,sepcolor="black",sepwidth=c(0.001,0.001),RowSideColors=rlab,ColSideColors=clab,labCol=col.lab,labRow=row.lab,cexCol=1,cexRow=1,ColSideColorsSize = 1.5,RowSideColorsSize = 1.5,symm=F,symkey=F,symbreaks=F, scale="none",margins=c(7,3))
+
+
+}
+dev.off()
+
+
 
 ###### Cell cycle index 
 G1S=c("ACD","ACYP1","ADAMTS1","ANKRD10","APEX2","ARGLU1","ATAD2","BARD1","BRD7","C1orf63","C7orf41","C14orf142","CAPN7","CASP2","CASP8AP2","CCNE1","CCNE2","CDC6","CDC25A","CDCA7","CDCA7L","CEP57","CHAF1A","CHAF1B","CLSPN","CREBZF","CTSD","DIS3","DNAJC3","DONSON","DSCC1","DTL","E2F1","EIF2A","ESD","FAM105B","FAM122A","FLAD1","GINS2","GINS3","GMNN","HELLS","HOXB4","HRAS","HSF2","INSR","INTS8","IVNS1ABP","KIAA1147","KIAA1586","LNPEP","LUC7L3","MCM2","MCM4","MCM5","MCM6","MDM1","MED31","MRI1","MSH2","NASP","NEAT1","NKTR","NPAT","NUP43","ORC1","OSBPL6","PANK2","PCDH7","PCNA","PLCXD1","PMS1","PNN","POLD3","RAB23","RECQL4","RMI2","RNF113A","RNPC3","SEC62","SKP2","SLBP","SLC25A36","SNHG10","SRSF7","SSR3","TAF15","TIPIN","TOPBP1","TRA2A","TTC14","UBR7","UHRF1","UNG","USP53","VPS72","WDR76","ZMYND19","ZNF367","ZRANB2")                                                                                                          
@@ -662,7 +778,6 @@ dge3=dge
 
 dge.singlet=dge
 dge3=dge
-save(dge.singlet,file="HTO20kcell_6kcell_Classify2_singlet.Robj")
 
 allcyclethresh=0.05
 dge2=subset(dge, subset = FracAllCellCycle > allcyclethresh)
