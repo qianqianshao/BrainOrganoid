@@ -305,13 +305,6 @@ plot(data[,2],data[,3],cex.lab=1.5,xlim=c(0,2),ylim=c(0,2),xlab=colnames(data)[2
 dev.off()
 
 table(dge.hashtag$label,dge.hashtag$ID)
-           Doublet HTO-A HTO-B HTO-C HTO-D Negative
-  Doublet     1297   166   171   211    40        0
-  HTO-A        143   364     0     0     0        0
-  HTO-B         69     0   557     0     0        0
-  HTO-C        148     0     0   553     0        0
-  HTO-D        233     5    61    29   863     1002
-  Negative      13     3    17    12     0       52
 
 # Compare number of UMIs for singlets, doublets and negative cells
 Idents(dge.hashtag) <- "label2"
