@@ -1,6 +1,5 @@
 # scRNA-seq analysis for 4 SOSRSs at 1-month old with HTO on 1.2.2021 by Qianyi
 # fit bimodal or trimodal Guassian distributions to define cutoff thresholds for HTO classification
-# cluster for demultiplexed 4 SOSRSs at 1-month old
 
 
 R 
