@@ -271,9 +271,7 @@ dev.off()
 
 # Global classification results
 table(dge.hashtag$HTO_classification.global)
-## 
-##  Doublet Negative  Singlet 
-##     2598      346    13972
+
 
 class=dge.hashtag@meta.data$HTO_classification
 names(class)=rownames(dge.hashtag@meta.data)
@@ -282,8 +280,7 @@ write.table(class,"plot/hto_",i,"_defaultclassify_6kcell.txt",row.names=T,col.na
 # Visualize pairs of HTO signals to confirm mutual exclusivity in singlets
 Idents(dge.hashtag) <- "ID"
 table(dge.hashtag$ID)
- Doublet    HTO-A    HTO-B    HTO-C    HTO-D Negative 
-    1903      538      806      805      903     1054
+
 
 p=list()
 p[[1]]=FeatureScatter(dge.hashtag, pt.size=.8,feature1 = paste0("hto_HTO-",htoset[[i]][1]), feature2 = paste0("hto_HTO-",htoset[[i]][2]))
