@@ -24,7 +24,7 @@ organ=c("Brain","Brain")
 n=length(dataset)
 datainfo=data.frame(run,dataset,names,subject,organ)
 
-
+load(file="HTO20kcell_6kcell_hashtag.Robj")
 
 ## HTO normalization modified by Jun 
 # normalized each HTO’s count vector by using the "positive" cluster - the cells that have been provisionally assigned to be positive for this HTO.  The mean and variance for this subset of cells provide a better representation than the global mean and variance.  
@@ -154,6 +154,8 @@ table(dge.hashtag$label,dge.hashtag$ID)
   HTO-D        233     5    61    29   863     1002
   Negative      13     3    17    12     0       52
 
+
+save(dge.hashtag,file="HTO20kcell_6kcell_hashtag.Robj")
 
 p=list()
 p[[1]]=FeatureScatter(dge, pt.size=.8,feature1 = "hto_HTO-A", feature2 = "hto_HTO-B")
