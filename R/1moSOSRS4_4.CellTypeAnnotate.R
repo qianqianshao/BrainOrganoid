@@ -14,9 +14,6 @@
 
 R
 
-path <- "/scratch/junzli_root/junzli/qzm/Dropseq_analysis/10xFallopialTube/"
-setwd(path)
-
 ### color scheme
 gg_color_hue <- function(n) {
 hues = seq(15, 375, length = n + 1)
